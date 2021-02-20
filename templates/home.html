@@ -1,0 +1,150 @@
+{% extends "layouts/base.html" %}
+{% from "macros/macros.html" import icon %}
+
+{% block body %}
+<script src="https://unpkg.com/vue@3.0.5"></script>
+<div id="app" class="flex flex-col min-h-screen min-w-screen">
+    <h1 class="p-4 text-2xl font-bold bg-orange-500 shadow-lg mb-10">Récupération des pulls</h1>
+
+    <div class="flex flex-col items-center space-y-12">
+        <div class="text-xl w-max">
+            <form action="#" class="w-max flex flex-col md:flex-row">
+                <label for="email" class="px-2">Email utilisé pour la commande:</label>
+                <input autofocus id="email" class="px-1" :class="emailValid ? 'border' : 'border-orange-500 border-2'" type="email" v-model="email" @input="checkEmail">
+{#                <button type="submit" @click="checkEmail" class="rounded-full bg-orange-500 p-2">Continuer</button>#}
+            </form>
+        </div>
+        <div v-if="emailValid" class="flex items-center flex-col">
+            <div class="flex flex-wrap justify-center ml-2 mb-2">
+                <button class="p-2 mr-2 mb-2" v-for="date in dates" @click="setDate(date)" :style="'background-color: ' + colorForDate(date)">
+                    [[ niceDate(date) ]]</button>
+            </div>
+
+            <div class="flex flex-wrap p-4 justify-center ml-2 md:w-2/3 mb-4">
+                <button class="flex flex-col w-max bg-orange-200 p-2 mr-2 mb-2" v-for="slot in slotsForSelectedDate"
+                        :style="'background-color: ' + colorFor(slot)" @click="reserve(slot)">
+                    <span> [[ slot.time.h ]]:[[ slot.time.m ]]</span>
+                    <span>([[ slot.capacity - slot.attending ]] places)</span>
+                </button>
+            </div>
+
+            <div v-if="bookedSlot" class="text-center text-xl">
+                Tu peux récupérer ton pull le <strong>[[ niceDate(bookedSlot.date) ]]</strong>,
+                à <strong>[[ bookedSlot.time.h ]]:[[ bookedSlot.time.m ]]</strong>. <br>
+                La distribution se fait au premier étage du batiment MA, à coté des casiers. <br>
+                Un membre de CQFD t'y attendra, alors merci d'être à l'heure ;-)
+                <br><br>
+                Il est obligatoire de porter le masque à l'EPFL, et n'hésitez pas à récupérer les pulls de vos amis.
+            </div>
+        </div>
+    </div>
+
+    <a href="https://therandom.space/showcase" class="absolute right-2 text-sm bottom-2 text-orange-500">Made by @ddorn</a>
+</div>
+
+<script>
+    'use strict';
+
+    const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+    const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Décmembre']
+
+
+    function newItem(name, categ) {
+        return {
+            name, categ,
+            done: false,
+            id: null,
+        }
+    }
+
+    const App = {
+        data() {
+            return {
+                email: '',
+                emailValid: false,
+                slots: [],
+                dateSelected: null,
+                slotRegisteredId: null,
+            }
+        },
+        computed: {
+            dates() {
+                let s = new Set(this.slots.map(s => s.day.toISOString()))
+                let a = new Array(...s);
+                return a.map(s => new Date(s))
+            },
+            slotsForSelectedDate() {
+                if (this.dateSelected === null) return [];
+                return this.slots.filter(s => s.day.toISOString() === this.dateSelected.toISOString());
+            },
+            bookedSlot() { return this.getSlotById(this.slotRegisteredId) }
+        },
+        methods: {
+            checkEmail() {
+                fetch("/api/exists?email=" + this.email).then(r => r.json().then(d => {
+                    this.emailValid = d;
+                    if (d) {
+                        fetch("/api/booked?email=" + this.email).then(r => r.json().then(d => {
+                            this.slotRegisteredId = d
+                            if (d !== null) {
+                                this.dateSelected = this.bookedSlot.day
+                            }
+                    }))
+                    }
+                    {#if (!d) alert("Cet email n'est utilisé pour aucune commande... Verifie qu'il est correct ou essaye un autre email.")#}
+                }))
+            },
+            niceDate(date) {
+                return DAYS[date.getDay()] + ' ' + date.getDate() + ' ' + MONTHS[date.getMonth()]
+            },
+            setDate(date) { this.dateSelected = date; },
+            getSlotById(id) { return this.slots.find(s => s.id === id)},
+            colorFor(slot) {
+                if (slot.id === this.slotRegisteredId) return '#6fcdff'
+                let left = slot.capacity - slot.attending;
+                if (left === 0) { return '#ffa290'; }
+                else if (left <= 2){ return '#ffdb99' }
+                else {return '#cdff7c'}
+            },
+            colorForDate(date) {
+                console.log(this.slots)
+                let current = this.getSlotById(this.slotRegisteredId)
+                if (current && current.day.toISOString() === date.toISOString()) return '#6fcdff'
+                else return '#ffdb99'
+            },
+            reserve(slot) {
+                console.log(slot)
+                if (slot.attending < slot.capacity) {
+                    fetch(`/api/slot/${slot.id}?email=` + this.email, { method: "PUT"}).then(response => response.json().then(
+                        data => {
+                            slot.attending = data.current.attending;
+                            this.slotRegisteredId = slot.id;
+                            if (data.previous) {
+                                let prev = this.getSlotById(data.previous.id)
+                                prev.attending = data.previous.attending;
+                            }
+                        }
+                    ))
+                }
+            },
+        },
+        created() {
+            fetch("/api").then(r => r.json().then(d => this.slots = d.map(s => {
+                s.date = new Date(s.start);
+                let h = s.date.getHours(),
+                    m = s.date.getMinutes();
+                s.time = {h: h < 10 ? '0' + h : h, m: m < 10 ? '0' + m : m};
+                s.day = new Date(s.date.toISOString().slice(0, 10));
+                return s;
+            })));
+        },
+        mounted() {
+            document.getElementById('email').focus()
+        },
+        delimiters: ['[[', ']]'],
+    }
+
+    const vm = Vue.createApp(App);
+    vm.mount('#app')
+</script>
+{% endblock %}
