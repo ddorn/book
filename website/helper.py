@@ -1,6 +1,7 @@
 import json
 import os
 from collections import defaultdict
+from datetime import timezone, tzinfo
 from operator import attrgetter, itemgetter
 from pathlib import Path
 from typing import Dict
@@ -12,9 +13,25 @@ from models import *
 TOP_DIR = Path(__file__).parent
 DATA = TOP_DIR / "data"
 DB_FILE = DATA / 'slots.yaml'
+CONFIG_FILE = DATA / 'config.yaml'
 COMMANDES_FILE = DATA / 'commandes.csv'
 
 os.chdir(TOP_DIR)
+
+
+class Config(BaseModel):
+    BOOK_LIMIT: datetime = datetime(2000, 1, 1).astimezone(timezone.utc)
+
+
+def get_config() -> Config:
+    CONFIG_FILE.touch()
+    config = Config(**yaml.safe_load(CONFIG_FILE.read_text() or '{}'))
+    return config
+
+
+def save_config(config: Config):
+    CONFIG_FILE.write_text(yaml.safe_dump(config.dict()))
+
 
 def load_data() -> Dict[int, TimeSlotDB]:
     DB_FILE.touch()
@@ -43,7 +60,6 @@ def load_commandes():
                        surname=surname)
         )
     return commandes
-
 
 
 def get(l, **kwargs):

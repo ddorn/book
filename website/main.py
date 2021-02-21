@@ -74,6 +74,8 @@ def book_slot(id: int, email: str):
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, "The slot is already booked by yourself.")
     if len(slot.attendes) >= slot.capacity:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "All places are already booked for this slot.")
+    if len(slot.attendes) == 0 and slot.start < get_config().BOOK_LIMIT:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Sorry, it is too late to book an empty slot now as, we may not see it.")
 
     # Add to the current
     slot.attendes.add(email)
