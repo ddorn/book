@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "localtunnel": "^2.0.1",
     "vue": "^3.0.5"
   },
   "devDependencies": {
@@ -8,8 +7,7 @@
     "tailwindcss": "^2.0.0"
   },
   "scripts": {
-    "tw": "tailwind build static/source.css -o static/style.css -c tailwind.config.js --no-autoprefixer",
-    "tw-prod": "NODE_ENV=production npm run tw",
-    "start": "FLASK_ENV=development python -m flask run"
+    "tw-dev": "tailwind build website/static/source.css -o website/static/style.css -c tailwind.config.js --no-autoprefixer",
+    "tw": "NODE_ENV=production npm run tw-dev"
   }
 }

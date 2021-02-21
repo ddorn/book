@@ -1,4 +1,5 @@
 import json
+import os
 from collections import defaultdict
 from operator import attrgetter, itemgetter
 from pathlib import Path
@@ -8,10 +9,12 @@ import yaml
 
 from models import *
 
-DATA = Path(__file__).parent / "data"
+TOP_DIR = Path(__file__).parent
+DATA = TOP_DIR / "data"
 DB_FILE = DATA / 'slots.yaml'
 COMMANDES_FILE = DATA / 'commandes.csv'
 
+os.chdir(TOP_DIR)
 
 def load_data() -> Dict[int, TimeSlotDB]:
     DB_FILE.touch()
