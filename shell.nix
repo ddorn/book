@@ -17,8 +17,7 @@ let
 in
 mkShell {
   buildInputs = [
-    heroku
-    customPython
+    # customPython
     my-pkgs.nodejs
     my-pkgs.nodePackages.npm
   ];

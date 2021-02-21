@@ -612,6 +612,16 @@ video {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+.bg-red-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(255, 162, 144, var(--tw-bg-opacity));
+}
+
+.bg-blue-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(111, 205, 255, var(--tw-bg-opacity));
+}
+
 .hover\:bg-opacity-80:hover {
   --tw-bg-opacity: 0.8;
 }
@@ -623,6 +633,10 @@ video {
 
 .border-elevation-1 {
   border-color: rgba(255, 255, 255, 0.05);
+}
+
+.rounded {
+  border-radius: 0.25rem;
 }
 
 .rounded-lg {
@@ -743,6 +757,11 @@ video {
   margin-bottom: 1rem;
 }
 
+.mx-4 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
 .mt-2 {
   margin-top: 0.5rem;
 }
@@ -799,6 +818,10 @@ video {
   opacity: 0.8;
 }
 
+.opacity-100 {
+  opacity: 1;
+}
+
 .hover\:opacity-100:hover {
   opacity: 1;
 }
@@ -825,8 +848,16 @@ video {
   padding-right: 0.5rem;
 }
 
+.pb-10 {
+  padding-bottom: 2.5rem;
+}
+
 .static {
   position: static;
+}
+
+.fixed {
+  position: fixed;
 }
 
 .absolute {
@@ -851,6 +882,10 @@ video {
 
 .bottom-2 {
   bottom: 0.5rem;
+}
+
+.bottom-4 {
+  bottom: 1rem;
 }
 
 * {
@@ -916,6 +951,10 @@ video {
   user-select: all;
 }
 
+.w-auto {
+  width: auto;
+}
+
 .w-full {
   width: 100%;
 }
@@ -942,6 +981,12 @@ video {
 
 .transition {
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-opacity {
+  transition-property: opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
