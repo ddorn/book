@@ -10,13 +10,12 @@
             <form action="#" class="w-max flex flex-col md:flex-row">
                 <label for="email" class="px-2">Email utilisé pour la commande:</label>
                 <input autofocus id="email" class="px-1" :class="emailValid ? 'border' : 'border-orange-500 border-2'" type="email" v-model="email" @input="checkEmail">
-{#                <button type="submit" @click="checkEmail" class="rounded-full bg-orange-500 p-2">Continuer</button>#}
             </form>
         </div>
         <div v-if="emailValid" class="flex items-center flex-col">
             <div class="flex flex-wrap justify-center ml-2 mb-2">
                 <button class="p-2 mr-2 mb-2" v-for="date in dates" @click="setDate(date)"
-                        :class="[colorForDate(date), {'font-bold': dateSelected === date}]">
+                        :class="[colorForDate(date), {'font-bold': dateSelected !== null && dateSelected.getTime() === date.getTime()}]">
                     [[ niceDate(date) ]]</button>
             </div>
 
@@ -83,17 +82,38 @@
             bookedSlot() { return this.getSlotById(this.slotRegisteredId) }
         },
         methods: {
+            updateData() {
+                fetch("/api").then(r => {
+                    if (r.ok) {
+                        r.json().then(d => this.slots = d.map(s => {
+                            s.date = new Date(s.start);
+                            let h = s.date.getUTCHours() + 1,  // Manual Time Zone, the time zone of the event
+                                m = s.date.getUTCMinutes();
+                            s.time = {h: h < 10 ? '0' + h : h, m: m < 10 ? '0' + m : m};
+                            s.day = new Date(s.date.toISOString().slice(0, 10));
+                            return s;
+                        }))
+                    }
+                });
+            },
+            updateBooked() {
+                fetch("/api/booked?email=" + this.email).then(r => r.json().then(d => {
+                        this.slotRegisteredId = d
+                        if (d !== null && this.dateSelected === null) {
+                            this.dateSelected = this.bookedSlot.day
+                        }
+                    }))
+            },
+            backgroundUpdate() {
+                if (document.visibilityState === 'visible' && this.emailValid) {
+                    this.updateData();
+                    this.updateBooked();
+                }
+            },
             checkEmail() {
                 fetch("/api/exists?email=" + this.email).then(r => r.json().then(d => {
                     this.emailValid = d;
-                    if (d) {
-                        fetch("/api/booked?email=" + this.email).then(r => r.json().then(d => {
-                            this.slotRegisteredId = d
-                            if (d !== null) {
-                                this.dateSelected = this.bookedSlot.day
-                            }
-                    }))
-                    }
+                    if (d) this.updateBooked();
                     {#if (!d) alert("Cet email n'est utilisé pour aucune commande... Verifie qu'il est correct ou essaye un autre email.")#}
                 }))
             },
@@ -119,7 +139,6 @@
                     .then(response => {
                         if (response.ok) {
                             response.json().then(data => {
-                                if ('details' in data) return showError(data.details);
                                 slot.attending = data.current.attending;
                                 this.slotRegisteredId = slot.id;
                                 if (data.previous) {
@@ -141,14 +160,8 @@
             },
         },
         created() {
-            fetch("/api").then(r => r.json().then(d => this.slots = d.map(s => {
-                s.date = new Date(s.start);
-                let h = s.date.getUTCHours() + 1,  // Manual Time Zone, the time zone of the event
-                    m = s.date.getUTCMinutes();
-                s.time = {h: h < 10 ? '0' + h : h, m: m < 10 ? '0' + m : m};
-                s.day = new Date(s.date.toISOString().slice(0, 10));
-                return s;
-            })));
+            this.updateData();
+            setInterval(this.backgroundUpdate, 10000);
         },
         mounted() {
             document.getElementById('email').focus()
